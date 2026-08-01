@@ -1,27 +1,31 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
-interface BrowShape {
+interface GalleryItem {
   _id: string
   name: string
   imageUrl: string
-  description: string
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
 }
 
-interface BrowShapesResponse {
-  items: BrowShape[]
+interface GalleryApiItem {
+  key: string
+  url: string
+  size: number
+  lastModified: string
+  etag: string
+}
+
+interface GalleryResponse {
+  items: GalleryApiItem[]
   total: number
 }
 
-const imageBaseUrl = (import.meta.env.VITE_IMAGE_BASE_URL ?? 'http://localhost:4000').replace(/\/$/, '')
-const BROW_SHAPES_API_URL = `${imageBaseUrl}/api/brow-shapes`
-const browShapes = ref<BrowShape[]>([])
+const imageBaseUrl = (import.meta.env.VITE_IMAGE_BASE_URL ?? import.meta.env.API_BASE_URL).replace(/\/$/, '')
+const GALLERY_API_URL = `${imageBaseUrl}/gallery`
+const galleryItems = ref<GalleryItem[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
-const itemCount = computed(() => browShapes.value.length)
+const itemCount = computed(() => galleryItems.value.length)
 
 function getImageUrl(imageUrl: string) {
   if (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:')) return imageUrl
@@ -30,23 +34,32 @@ function getImageUrl(imageUrl: string) {
   return `${imageBaseUrl}/${path}`
 }
 
-async function loadBrowShapes() {
+function getGalleryItemName(key: string) {
+  return key.split('/').pop() ?? key
+}
+
+async function loadGalleryImages() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    const response = await fetch(BROW_SHAPES_API_URL)
+    const response = await fetch(GALLERY_API_URL)
     if (!response.ok) throw new Error(`Request failed: ${response.status}`)
-    const payload = await response.json() as BrowShapesResponse
-    browShapes.value = payload.items
+
+    const payload = await response.json() as GalleryResponse
+    galleryItems.value = payload.items.map(item => ({
+      _id: `gallery-${item.key}`,
+      name: getGalleryItemName(item.key),
+      imageUrl: item.url,
+    }))
   } catch {
-    errorMessage.value = 'Unable to load brow shapes. Please try again.'
+    errorMessage.value = 'Unable to load gallery images. Please try again.'
   } finally {
     isLoading.value = false
   }
 }
 
-onMounted(loadBrowShapes)
+onMounted(loadGalleryImages)
 </script>
 
 <template>
@@ -60,19 +73,19 @@ onMounted(loadBrowShapes)
       <p class="intro">A personal record of lines, symbols, and stories. Small works made to live with you.</p>
     </div>
 
-    <div v-if="isLoading" class="gallery-status" role="status">Loading brow shapes…</div>
+    <div v-if="isLoading" class="gallery-status" role="status">Loading gallery images…</div>
     <div v-else-if="errorMessage" class="gallery-status" role="alert">
       <p>{{ errorMessage }}</p>
-      <button type="button" class="text-button" @click="loadBrowShapes">Try again</button>
+      <button type="button" class="text-button" @click="loadGalleryImages">Try again</button>
     </div>
     <div v-else-if="itemCount" class="gallery-grid">
-      <article v-for="(shape, index) in browShapes" :key="shape._id" class="tattoo-card">
+      <article v-for="(item, index) in galleryItems" :key="item._id" class="tattoo-card">
         <span class="card-no">{{ String(index + 1).padStart(2, '0') }} / {{ String(itemCount).padStart(2, '0') }}</span>
-        <img :src="getImageUrl(shape.imageUrl)" :alt="shape.name" class="gallery-image">
-        <div class="card-footer"><span>{{ shape.name }}</span></div>
+        <img :src="getImageUrl(item.imageUrl)" :alt="item.name" class="gallery-image">
+        <div class="card-footer"><span>{{ item.name }}</span></div>
       </article>
     </div>
-    <div v-else class="gallery-status">No brow shapes are available yet.</div>
+    <div v-else class="gallery-status">No gallery images are available yet.</div>
 
     <footer class="page-footer"><span>Scroll to explore</span><span class="scroll-line"></span><span>Seoul, KR</span></footer>
   </section>
