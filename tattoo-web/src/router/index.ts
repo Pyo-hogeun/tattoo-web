@@ -3,8 +3,12 @@ import type { Component } from 'vue'
 import GalleryPage from '../views/GalleryPage.vue'
 import ProfilePage from '../views/ProfilePage.vue'
 import SettingPage from '../views/SettingPage.vue'
+import AuthCallbackPage from '../views/AuthCallbackPage.vue'
+import UploadPage from '../views/UploadPage.vue'
+import SignupPage from '../views/SignupPage.vue'
+import SignupCompletePage from '../views/SignupCompletePage.vue'
 
-export type RouteName = 'gallery' | 'profile' | 'setting'
+export type RouteName = 'gallery' | 'profile' | 'setting' | 'signup' | 'signup-complete' | 'auth-callback' | 'upload'
 
 type Route = {
   name: RouteName
@@ -16,11 +20,25 @@ type Route = {
 export const routes: Route[] = [
   { name: 'gallery', label: 'Gallery', path: '/', component: GalleryPage },
   { name: 'profile', label: 'Profile', path: '/profile', component: ProfilePage },
+  { name: 'upload', label: 'Upload', path: '/upload', component: UploadPage },
   { name: 'setting', label: 'Setting', path: '/setting', component: SettingPage },
 ]
 
+const systemRoutes: Route[] = [
+  { name: 'signup', label: 'Signup', path: '/signup', component: SignupPage },
+  { name: 'signup-complete', label: 'Signup complete', path: '/signup/complete', component: SignupCompletePage },
+  { name: 'auth-callback', label: 'Auth callback', path: '/auth/kakao/callback', component: AuthCallbackPage },
+]
+
+function normalizePath(path: string) {
+  const pathname = new URL(path, window.location.origin).pathname
+  if (pathname === '/') return pathname
+  return pathname.replace(/\/+$/, '') || '/'
+}
+
 function resolveRoute(pathname: string): Route {
-  return routes.find((route) => route.path === pathname) ?? routes[0]
+  const normalizedPath = normalizePath(pathname)
+  return [...routes, ...systemRoutes].find((route) => route.path === normalizedPath) ?? routes[0]
 }
 
 export const currentRoute = shallowRef<Route>(resolveRoute(window.location.pathname))
